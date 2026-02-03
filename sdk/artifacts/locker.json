@@ -697,6 +697,16 @@
         {
           "name": "max_amount",
           "type": "u64"
+        },
+        {
+          "name": "remaining_accounts_info",
+          "type": {
+            "option": {
+              "defined": {
+                "name": "RemainingAccountsInfo"
+              }
+            }
+          }
         }
       ]
     },
@@ -1987,6 +1997,16 @@
           "type": {
             "defined": {
               "name": "CreateVestingEscrowParameters"
+            }
+          }
+        },
+        {
+          "name": "remaining_accounts_info",
+          "type": {
+            "option": {
+              "defined": {
+                "name": "RemainingAccountsInfo"
+              }
             }
           }
         }

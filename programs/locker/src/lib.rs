@@ -205,19 +205,21 @@ pub mod locker {
 
     /// Create a vesting escrow with session-based signing
     /// Supports delegated signing for lock campaign operations on Fogo blockchain.
-    pub fn create_vesting_escrow_with_session(
-        ctx: Context<CreateVestingEscrowWithSessionCtx>,
+    pub fn create_vesting_escrow_with_session<'c: 'info, 'info>(
+        ctx: Context<'_, '_, 'c, 'info, CreateVestingEscrowWithSessionCtx<'info>>,
         params: CreateVestingEscrowParameters,
+        remaining_accounts_info: Option<RemainingAccountsInfo>,
     ) -> Result<()> {
-        handle_create_vesting_escrow_with_session(ctx, &params)
+        handle_create_vesting_escrow_with_session(ctx, &params, remaining_accounts_info)
     }
 
     /// Claim from vesting escrow with session-based signing
     /// Supports delegated signing for claim operations on Fogo blockchain.
-    pub fn claim_with_session(
-        ctx: Context<ClaimWithSessionCtx>,
+    pub fn claim_with_session<'c: 'info, 'info>(
+        ctx: Context<'_, '_, 'c, 'info, ClaimWithSessionCtx<'info>>,
         max_amount: u64,
+        remaining_accounts_info: Option<RemainingAccountsInfo>,
     ) -> Result<()> {
-        handle_claim_with_session(ctx, max_amount)
+        handle_claim_with_session(ctx, max_amount, remaining_accounts_info)
     }
 }

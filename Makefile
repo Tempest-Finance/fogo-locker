@@ -30,10 +30,12 @@ build/localnet: ## Build for localnet
 	anchor build -p locker --no-idl -- --features localnet
 
 build/testnet: ## Build for testnet
-	anchor build -p locker --idl sdk/artifacts
+	anchor build -p locker
+	@cp target/idl/locker.json ./sdk/artifacts/
 
 build/mainnet: ## Build for mainnet (no feature flag)
-	anchor build -p locker --idl sdk/artifacts
+	anchor build -p locker
+	@cp target/idl/locker.json ./sdk/artifacts/
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Test

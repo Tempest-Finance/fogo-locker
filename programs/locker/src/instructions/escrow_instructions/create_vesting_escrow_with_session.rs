@@ -3,7 +3,8 @@ use anchor_spl::token_2022::spl_token_2022;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::util::{
-    calculate_transfer_fee_included_amount, token::transfer_to_escrow_with_session, validate_mint,
+    calculate_transfer_fee_included_amount, parse_remaining_accounts,
+    token::transfer_to_escrow_with_session, validate_mint, AccountsType, ParsedRemainingAccounts,
 };
 use crate::TokenProgramFlag::{UseSplToken, UseToken2022};
 use crate::*;
@@ -55,9 +56,10 @@ pub struct CreateVestingEscrowWithSessionCtx<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handle_create_vesting_escrow_with_session(
-    ctx: Context<CreateVestingEscrowWithSessionCtx>,
+pub fn handle_create_vesting_escrow_with_session<'c: 'info, 'info>(
+    ctx: Context<'_, '_, 'c, 'info, CreateVestingEscrowWithSessionCtx<'info>>,
     params: &CreateVestingEscrowParameters,
+    remaining_accounts_info: Option<RemainingAccountsInfo>,
 ) -> Result<()> {
     use fogo_sessions_sdk::session::Session;
     use fogo_sessions_sdk::token::PROGRAM_SIGNER_SEED;
@@ -99,18 +101,29 @@ pub fn handle_create_vesting_escrow_with_session(
         token_program_flag.into(),
     )?;
 
+    let mut remaining_accounts = ctx.remaining_accounts;
+    let parsed_transfer_hook_accounts = match remaining_accounts_info {
+        Some(info) => parse_remaining_accounts(
+            &mut remaining_accounts,
+            &info.slices,
+            &[AccountsType::TransferHookEscrow],
+        )?,
+        None => ParsedRemainingAccounts::default(),
+    };
+
     transfer_to_escrow_with_session(
         &ctx.accounts.signer_or_session,
         &ctx.accounts.program_signer,
         bump,
         &ctx.accounts.token_mint,
         &ctx.accounts.sender_token,
-        &ctx.accounts.escrow_token,
+        &ctx.accounts.escrow_token.to_account_info(),
         &ctx.accounts.token_program,
         calculate_transfer_fee_included_amount(
             params.get_total_deposit_amount()?,
             &ctx.accounts.token_mint,
         )?,
+        parsed_transfer_hook_accounts.transfer_hook_escrow,
     )?;
 
     let &CreateVestingEscrowParameters {

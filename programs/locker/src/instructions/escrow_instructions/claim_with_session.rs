@@ -1,7 +1,10 @@
 use anchor_spl::memo::Memo;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
-use crate::util::{transfer_to_user2, MemoTransferContext, TRANSFER_MEMO_CLAIM_VESTING};
+use crate::util::{
+    parse_remaining_accounts, transfer_to_user2, AccountsType, MemoTransferContext,
+    ParsedRemainingAccounts, TRANSFER_MEMO_CLAIM_VESTING,
+};
 use crate::*;
 
 #[event_cpi]
@@ -38,9 +41,10 @@ pub struct ClaimWithSessionCtx<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-pub fn handle_claim_with_session(
-    ctx: Context<ClaimWithSessionCtx>,
+pub fn handle_claim_with_session<'c: 'info, 'info>(
+    ctx: Context<'_, '_, 'c, 'info, ClaimWithSessionCtx<'info>>,
     max_amount: u64,
+    remaining_accounts_info: Option<RemainingAccountsInfo>,
 ) -> Result<()> {
     use fogo_sessions_sdk::session::Session;
 
@@ -67,6 +71,16 @@ pub fn handle_claim_with_session(
     let amount = escrow.claim(max_amount)?;
     drop(escrow);
 
+    let mut remaining_accounts = ctx.remaining_accounts;
+    let parsed_transfer_hook_accounts = match remaining_accounts_info {
+        Some(info) => parse_remaining_accounts(
+            &mut remaining_accounts,
+            &info.slices,
+            &[AccountsType::TransferHookEscrow],
+        )?,
+        None => ParsedRemainingAccounts::default(),
+    };
+
     transfer_to_user2(
         &ctx.accounts.escrow,
         &ctx.accounts.token_mint,
@@ -78,7 +92,7 @@ pub fn handle_claim_with_session(
             memo: TRANSFER_MEMO_CLAIM_VESTING.as_bytes(),
         }),
         amount,
-        None,
+        parsed_transfer_hook_accounts.transfer_hook_escrow,
     )?;
 
     let current_ts = Clock::get()?.unix_timestamp as u64;
