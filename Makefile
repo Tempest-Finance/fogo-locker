@@ -3,17 +3,18 @@
 # ══════════════════════════════════════════════════════════════════════════════
 
 PROGRAM_ID_localnet := 76Hqr9nixY17jLcLekWAnmnAQLdSYS9DuU3XErVfETi3
-PROGRAM_ID_devnet   := 76Hqr9nixY17jLcLekWAnmnAQLdSYS9DuU3XErVfETi3
+PROGRAM_ID_testnet  := LockvXm2nWht6EvHf44AmCuS3eMKRiWTuks2x27XRRo
+PROGRAM_ID_staging  := 76Hqr9nixY17jLcLekWAnmnAQLdSYS9DuU3XErVfETi3
 PROGRAM_ID_mainnet  := LockvXm2nWht6EvHf44AmCuS3eMKRiWTuks2x27XRRo
 
 PROGRAM_SO := target/deploy/locker.so
 
 CLUSTER ?= localnet
 RPC_localnet := http://localhost:8899
-RPC_devnet   := https://api.devnet.solana.com
+RPC_testnet  := https://testnet.fogo.io
 RPC_mainnet  := https://mainnet.fogo.io
 
-KEYPAIR_DIR := keys/$(CLUSTER)
+KEYPAIR_DIR := .keys
 PROGRAM_ID  := $(PROGRAM_ID_$(CLUSTER))
 
 .DEFAULT_GOAL := help
@@ -22,17 +23,17 @@ PROGRAM_ID  := $(PROGRAM_ID_$(CLUSTER))
 # Build
 # ══════════════════════════════════════════════════════════════════════════════
 
-build: ## Build on-chain program (CLUSTER=localnet|devnet|mainnet)
+build: ## Build on-chain program (CLUSTER=localnet|testnet|mainnet)
 	$(MAKE) build/$(CLUSTER)
 
 build/localnet: ## Build for localnet
 	anchor build -p locker --no-idl -- --features localnet
 
-build/devnet: ## Build for devnet
-	anchor build -p locker --no-idl -- --features localnet
+build/testnet: ## Build for testnet
+	anchor build -p locker --idl sdk/artifacts
 
 build/mainnet: ## Build for mainnet (no feature flag)
-	anchor build -p locker --no-idl
+	anchor build -p locker --idl sdk/artifacts
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Test
@@ -64,23 +65,19 @@ audit: ## Run security audit
 # Deploy
 # ══════════════════════════════════════════════════════════════════════════════
 
-deploy: _check-cluster _check-keypair ## Deploy program (CLUSTER=localnet|staging|mainnet)
+deploy: _check-cluster ## Deploy program (CLUSTER=localnet|testnet|mainnet)
 ifeq ($(CLUSTER),mainnet)
 	@printf "\033[31mDeploy to MAINNET? [y/N] \033[0m" && read ans && [ $${ans:-N} = y ]
-	$(MAKE) build/mainnet
-else
-	$(MAKE) build/$(CLUSTER)
 endif
-	solana program deploy --url $(RPC_$(CLUSTER)) --program-id $(KEYPAIR_DIR)/$(PROGRAM_ID).json $(PROGRAM_SO)
+	$(MAKE) build/$(CLUSTER)
+	anchor deploy -p locker --provider.cluster $(RPC_$(CLUSTER))
 
-upgrade: _check-cluster _check-keypair ## Upgrade program (CLUSTER=localnet|staging|mainnet)
+upgrade: _check-cluster ## Upgrade program (CLUSTER=localnet|testnet|mainnet)
 ifeq ($(CLUSTER),mainnet)
 	@printf "\033[31mUpgrade on MAINNET? [y/N] \033[0m" && read ans && [ $${ans:-N} = y ]
-	$(MAKE) build/mainnet
-else
-	$(MAKE) build/$(CLUSTER)
 endif
-	solana program deploy --url $(RPC_$(CLUSTER)) --program-id $(PROGRAM_ID) $(PROGRAM_SO)
+	$(MAKE) build/$(CLUSTER)
+	anchor upgrade -p locker --provider.cluster $(RPC_$(CLUSTER)) $(PROGRAM_SO)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Utilities
@@ -98,9 +95,6 @@ size: build ## Show program size
 
 show: _check-cluster ## Show program info on cluster
 	@solana program show $(PROGRAM_ID) --url $(RPC_$(CLUSTER)) 2>/dev/null || echo "Program not deployed on $(CLUSTER)"
-
-idl: ## Generate IDL to sdk/artifacts/
-	anchor build -p locker --idl sdk/artifacts -- --features idl-build
 
 _check-keypair:
 	@test -f $(KEYPAIR_DIR)/$(PROGRAM_ID).json || (echo "Error: $(KEYPAIR_DIR)/$(PROGRAM_ID).json not found" && exit 1)

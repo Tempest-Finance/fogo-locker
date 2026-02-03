@@ -106,7 +106,6 @@ pub fn handle_create_vesting_escrow2<'c: 'info, 'info>(
             &ctx.accounts.token_mint,
         )?,
         parsed_transfer_hook_accounts.transfer_hook_escrow,
-        None, // No session context - regular transfer
     )?;
 
     let &CreateVestingEscrowParameters {

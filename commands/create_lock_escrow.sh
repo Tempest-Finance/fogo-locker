@@ -1,4 +1,4 @@
-rpc_url=https://api.devnet.solana.com
+rpc_url=https://testnet.fogo.io
 keypair_path=
 wallet_path=cli/test.csv
 token_mint=
