@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount, Transfer};
+use anchor_spl::token_interface::{Mint, TokenAccount as TokenAccount2022, TokenInterface};
 
 use crate::VestingEscrow;
 
@@ -47,5 +48,43 @@ pub fn transfer_to_user<'info>(
         ),
         amount,
     )?;
+    Ok(())
+}
+
+pub fn transfer_to_escrow_with_session<'c: 'info, 'info>(
+    signer_or_session: &AccountInfo<'info>,
+    program_signer: &AccountInfo<'info>,
+    program_signer_bump: u8,
+    token_mint: &InterfaceAccount<'info, Mint>,
+    sender_token: &InterfaceAccount<'info, TokenAccount2022>,
+    escrow_token: &InterfaceAccount<'info, TokenAccount2022>,
+    token_program: &Interface<'info, TokenInterface>,
+    amount: u64,
+) -> Result<()> {
+    use anchor_lang::solana_program;
+    use fogo_sessions_sdk::token::PROGRAM_SIGNER_SEED;
+
+    let instruction = fogo_sessions_sdk::token::instruction::transfer_checked(
+        token_program.key,
+        &sender_token.key(),
+        &token_mint.key(),
+        &escrow_token.key(),
+        signer_or_session.key,
+        Some(program_signer.key),
+        amount,
+        token_mint.decimals,
+    )?;
+
+    let account_infos = vec![
+        sender_token.to_account_info(),
+        token_mint.to_account_info(),
+        escrow_token.to_account_info(),
+        signer_or_session.clone(),
+        program_signer.clone(),
+    ];
+
+    let signer_seeds: &[&[u8]] = &[PROGRAM_SIGNER_SEED, &[program_signer_bump]];
+    solana_program::program::invoke_signed(&instruction, &account_infos, &[signer_seeds])?;
+
     Ok(())
 }

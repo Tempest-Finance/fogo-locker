@@ -73,6 +73,7 @@ pub fn handle_fund_root_escrow<'c: 'info, 'info>(
         &ctx.accounts.token_program,
         calculate_transfer_fee_included_amount(funded_amount, &ctx.accounts.token_mint)?,
         parsed_transfer_hook_accounts.transfer_hook_escrow,
+        None, // No session context - regular transfer
     )?;
 
     emit_cpi!(EventFundRootEscrow {

@@ -74,4 +74,10 @@ pub enum LockerError {
 
     #[msg("Invalid params")]
     InvalidParams,
+
+    #[msg("Invalid session or signer")]
+    InvalidSession,
+
+    #[msg("Token account not owned by session user")]
+    InvalidTokenOwner,
 }
