@@ -28,6 +28,7 @@ pub struct ClaimWithSessionCtx<'info> {
     pub escrow_token: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: Session or recipient - validated to match escrow.recipient
+    #[account(signer)]
     pub signer_or_session: AccountInfo<'info>,
 
     #[account(

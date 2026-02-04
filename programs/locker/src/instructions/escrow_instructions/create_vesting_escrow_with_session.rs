@@ -34,7 +34,8 @@ pub struct CreateVestingEscrowWithSessionCtx<'info> {
     )]
     pub escrow_token: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    /// CHECK: Session or direct signer
+    /// CHECK: Session or direct signer - must be a signer
+    #[account(signer)]
     pub signer_or_session: AccountInfo<'info>,
 
     #[account(
@@ -86,6 +87,7 @@ pub fn handle_create_vesting_escrow_with_session<'c: 'info, 'info>(
 
     let (expected_signer, bump) =
         Pubkey::find_program_address(&[PROGRAM_SIGNER_SEED], ctx.program_id);
+
     require!(
         expected_signer == ctx.accounts.program_signer.key(),
         LockerError::InvalidSession
