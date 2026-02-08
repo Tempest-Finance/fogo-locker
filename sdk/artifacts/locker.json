@@ -647,7 +647,8 @@
           }
         },
         {
-          "name": "signer_or_session"
+          "name": "signer_or_session",
+          "signer": true
         },
         {
           "name": "recipient_token",
@@ -1847,7 +1848,6 @@
       "accounts": [
         {
           "name": "base",
-          "writable": true,
           "signer": true
         },
         {
@@ -1934,7 +1934,8 @@
           }
         },
         {
-          "name": "signer_or_session"
+          "name": "signer_or_session",
+          "signer": true
         },
         {
           "name": "sender_token",
