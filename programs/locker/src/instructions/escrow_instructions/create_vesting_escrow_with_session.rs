@@ -61,8 +61,13 @@ pub fn handle_create_vesting_escrow_with_session<'c: 'info, 'info>(
     params: &CreateVestingEscrowParameters,
     remaining_accounts_info: Option<RemainingAccountsInfo>,
 ) -> Result<()> {
-    use fogo_sessions_sdk::session::Session;
+    use fogo_sessions_sdk::session::{is_session, Session};
     use fogo_sessions_sdk::token::PROGRAM_SIGNER_SEED;
+
+    require!(
+        is_session(&ctx.accounts.signer_or_session),
+        LockerError::InvalidSession
+    );
 
     validate_mint(&ctx.accounts.token_mint, true)?;
 
@@ -82,6 +87,11 @@ pub fn handle_create_vesting_escrow_with_session<'c: 'info, 'info>(
     require!(
         ctx.accounts.sender_token.owner == user_pubkey,
         LockerError::InvalidTokenOwner
+    );
+
+    require!(
+        ctx.accounts.recipient.key() == user_pubkey,
+        LockerError::InvalidSession
     );
 
     let (expected_signer, bump) =

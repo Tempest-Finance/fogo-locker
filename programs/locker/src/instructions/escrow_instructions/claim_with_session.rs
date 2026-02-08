@@ -47,7 +47,12 @@ pub fn handle_claim_with_session<'c: 'info, 'info>(
     max_amount: u64,
     remaining_accounts_info: Option<RemainingAccountsInfo>,
 ) -> Result<()> {
-    use fogo_sessions_sdk::session::Session;
+    use fogo_sessions_sdk::session::{is_session, Session};
+
+    require!(
+        is_session(&ctx.accounts.signer_or_session),
+        LockerError::InvalidSession
+    );
 
     let user_pubkey = Session::extract_user_from_signer_or_session(
         &ctx.accounts.signer_or_session,

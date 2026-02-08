@@ -46,7 +46,10 @@ pub struct CreateVestingEscrow2Ctx<'info> {
     pub sender: Signer<'info>,
 
     /// Sender Token Account.
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = sender_token.mint == token_mint.key() @ LockerError::InvalidEscrowTokenAddress
+    )]
     pub sender_token: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: recipient account
