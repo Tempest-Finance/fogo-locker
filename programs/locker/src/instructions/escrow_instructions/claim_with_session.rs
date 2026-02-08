@@ -55,20 +55,16 @@ pub fn handle_claim_with_session<'c: 'info, 'info>(
     )
     .map_err(|_| LockerError::InvalidSession)?;
 
-    {
-        let escrow = ctx.accounts.escrow.load()?;
-        require!(
-            escrow.recipient == user_pubkey,
-            LockerError::NotPermitToDoThisAction
-        );
-    }
-
     require!(
         ctx.accounts.recipient_token.owner == user_pubkey,
         LockerError::InvalidTokenOwner
     );
 
     let mut escrow = ctx.accounts.escrow.load_mut()?;
+    require!(
+        escrow.recipient == user_pubkey,
+        LockerError::NotPermitToDoThisAction
+    );
     let amount = escrow.claim(max_amount)?;
     drop(escrow);
 

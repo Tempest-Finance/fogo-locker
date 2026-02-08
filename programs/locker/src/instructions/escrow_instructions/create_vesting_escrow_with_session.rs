@@ -12,7 +12,6 @@ use crate::*;
 #[event_cpi]
 #[derive(Accounts)]
 pub struct CreateVestingEscrowWithSessionCtx<'info> {
-    #[account(mut)]
     pub base: Signer<'info>,
 
     #[account(
