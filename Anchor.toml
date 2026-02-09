@@ -1,18 +1,31 @@
 [toolchain]
+anchor_version = "0.31.0"
 
 [features]
 seeds = false
 skip-lint = false
 
 [programs.localnet]
-locker = "2r5VekMNiWPzi1pWwvJczrdPaZnJG59u91unSrTunwJg"
+locker = "76Hqr9nixY17jLcLekWAnmnAQLdSYS9DuU3XErVfETi3"
+
+[programs.testnet]
+locker = "LockvXm2nWht6EvHf44AmCuS3eMKRiWTuks2x27XRRo"
+
+[programs.mainnet]
+locker = "LockvXm2nWht6EvHf44AmCuS3eMKRiWTuks2x27XRRo"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
-wallet = "keys/localnet/admin-bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1.json"
+wallet = ".keys/authority.json"
+
+[clusters.testnet]
+url = "https://testnet.fogo.io"
+
+[clusters.mainnet]
+url = "https://mainnet.fogo.io"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

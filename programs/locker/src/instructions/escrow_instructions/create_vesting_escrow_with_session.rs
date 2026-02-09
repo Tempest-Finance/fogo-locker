@@ -3,36 +3,28 @@ use anchor_spl::token_2022::spl_token_2022;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::util::{
-    calculate_transfer_fee_included_amount, parse_remaining_accounts, transfer_to_escrow2,
-    validate_mint, AccountsType, ParsedRemainingAccounts,
+    calculate_transfer_fee_included_amount, parse_remaining_accounts,
+    token::transfer_to_escrow_with_session, validate_mint, AccountsType, ParsedRemainingAccounts,
 };
 use crate::TokenProgramFlag::{UseSplToken, UseToken2022};
 use crate::*;
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct CreateVestingEscrow2Ctx<'info> {
-    /// Base.
-    #[account(mut)]
+pub struct CreateVestingEscrowWithSessionCtx<'info> {
     pub base: Signer<'info>,
 
-    /// Escrow.
     #[account(
         init,
-        seeds = [
-            b"escrow".as_ref(),
-            base.key().as_ref(),
-        ],
+        seeds = [b"escrow".as_ref(), base.key().as_ref()],
         bump,
-        payer = sender,
+        payer = payer,
         space = 8 + VestingEscrow::INIT_SPACE
     )]
     pub escrow: AccountLoader<'info, VestingEscrow>,
 
-    // Mint.
     pub token_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    /// Escrow Token Account.
     #[account(
         mut,
         associated_token::mint = token_mint,
@@ -41,33 +33,42 @@ pub struct CreateVestingEscrow2Ctx<'info> {
     )]
     pub escrow_token: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    /// Sender.
-    #[account(mut)]
-    pub sender: Signer<'info>,
+    /// CHECK: Session or direct signer - must be a signer
+    #[account(signer)]
+    pub signer_or_session: AccountInfo<'info>,
 
-    /// Sender Token Account.
     #[account(
         mut,
         constraint = sender_token.mint == token_mint.key() @ LockerError::InvalidEscrowTokenAddress
     )]
     pub sender_token: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    /// CHECK: recipient account
+    /// CHECK: recipient
     pub recipient: UncheckedAccount<'info>,
 
-    /// Token program.
-    pub token_program: Interface<'info, TokenInterface>,
+    /// CHECK: Program signer PDA
+    pub program_signer: AccountInfo<'info>,
 
-    /// system program.
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
-pub fn handle_create_vesting_escrow2<'c: 'info, 'info>(
-    ctx: Context<'_, '_, 'c, 'info, CreateVestingEscrow2Ctx<'info>>,
+pub fn handle_create_vesting_escrow_with_session<'c: 'info, 'info>(
+    ctx: Context<'_, '_, 'c, 'info, CreateVestingEscrowWithSessionCtx<'info>>,
     params: &CreateVestingEscrowParameters,
     remaining_accounts_info: Option<RemainingAccountsInfo>,
 ) -> Result<()> {
-    // Validate if token_mint is supported
+    use fogo_sessions_sdk::session::{is_session, Session};
+    use fogo_sessions_sdk::token::PROGRAM_SIGNER_SEED;
+
+    require!(
+        is_session(&ctx.accounts.signer_or_session),
+        LockerError::InvalidSession
+    );
+
     validate_mint(&ctx.accounts.token_mint, true)?;
 
     let token_mint_info = ctx.accounts.token_mint.to_account_info();
@@ -77,18 +78,41 @@ pub fn handle_create_vesting_escrow2<'c: 'info, 'info>(
         _ => Err(LockerError::IncorrectTokenProgramId),
     }?;
 
+    let user_pubkey = Session::extract_user_from_signer_or_session(
+        &ctx.accounts.signer_or_session,
+        ctx.program_id,
+    )
+    .map_err(|_| LockerError::InvalidSession)?;
+
+    require!(
+        ctx.accounts.sender_token.owner == user_pubkey,
+        LockerError::InvalidTokenOwner
+    );
+
+    require!(
+        ctx.accounts.recipient.key() == user_pubkey,
+        LockerError::InvalidSession
+    );
+
+    let (expected_signer, bump) =
+        Pubkey::find_program_address(&[PROGRAM_SIGNER_SEED], ctx.program_id);
+
+    require!(
+        expected_signer == ctx.accounts.program_signer.key(),
+        LockerError::InvalidSession
+    );
+
     params.init_escrow(
         &ctx.accounts.escrow,
         ctx.accounts.recipient.key(),
         ctx.accounts.sender_token.mint,
-        ctx.accounts.sender.key(),
+        user_pubkey,
         ctx.accounts.base.key(),
         ctx.bumps.escrow,
         token_program_flag.into(),
     )?;
 
-    // Process remaining accounts
-    let mut remaining_accounts = &ctx.remaining_accounts[..];
+    let mut remaining_accounts = ctx.remaining_accounts;
     let parsed_transfer_hook_accounts = match remaining_accounts_info {
         Some(info) => parse_remaining_accounts(
             &mut remaining_accounts,
@@ -98,11 +122,13 @@ pub fn handle_create_vesting_escrow2<'c: 'info, 'info>(
         None => ParsedRemainingAccounts::default(),
     };
 
-    transfer_to_escrow2(
-        &ctx.accounts.sender,
+    transfer_to_escrow_with_session(
+        &ctx.accounts.signer_or_session,
+        &ctx.accounts.program_signer,
+        bump,
         &ctx.accounts.token_mint,
         &ctx.accounts.sender_token,
-        &ctx.accounts.escrow_token,
+        &ctx.accounts.escrow_token.to_account_info(),
         &ctx.accounts.token_program,
         calculate_transfer_fee_included_amount(
             params.get_total_deposit_amount()?,

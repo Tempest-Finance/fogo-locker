@@ -17,3 +17,6 @@ yarn.lock
 pnpm-lock.yaml
 
 commands_mainnet
+
+.keys
+tmp

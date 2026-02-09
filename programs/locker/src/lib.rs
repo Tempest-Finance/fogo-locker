@@ -24,13 +24,13 @@ pub mod events;
 pub mod util;
 
 #[cfg(feature = "localnet")]
-declare_id!("2r5VekMNiWPzi1pWwvJczrdPaZnJG59u91unSrTunwJg");
+declare_id!("76Hqr9nixY17jLcLekWAnmnAQLdSYS9DuU3XErVfETi3");
 
 #[cfg(feature = "staging")]
-declare_id!("sLovrBvGxvyvBniMxj8uUt9CdD7CV4PhnBnBD6cPSXo");
+declare_id!("76Hqr9nixY17jLcLekWAnmnAQLdSYS9DuU3XErVfETi3");
 
 #[cfg(not(any(feature = "localnet", feature = "staging")))]
-declare_id!("LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn");
+declare_id!("LockvXm2nWht6EvHf44AmCuS3eMKRiWTuks2x27XRRo");
 
 #[program]
 pub mod locker {
@@ -191,7 +191,7 @@ pub mod locker {
         handle_fund_root_escrow(ctx, max_amount, remaining_accounts_info)
     }
 
-    /// Crate vesting escrow from root
+    /// Create vesting escrow from root
     pub fn create_vesting_escrow_from_root<'c: 'info, 'info>(
         ctx: Context<'_, '_, 'c, 'info, CreateVestingEscrowFromRootCtx<'info>>,
         params: CreateVestingEscrowFromRootParams,
@@ -199,5 +199,27 @@ pub mod locker {
         remaining_accounts_info: Option<RemainingAccountsInfo>,
     ) -> Result<()> {
         handle_create_vesting_escrow_from_root(ctx, &params, proof, remaining_accounts_info)
+    }
+
+    // Session-based instructions (Fogo Sessions support)
+
+    /// Create a vesting escrow with session-based signing
+    /// Supports delegated signing for lock campaign operations on Fogo blockchain.
+    pub fn create_vesting_escrow_with_session<'c: 'info, 'info>(
+        ctx: Context<'_, '_, 'c, 'info, CreateVestingEscrowWithSessionCtx<'info>>,
+        params: CreateVestingEscrowParameters,
+        remaining_accounts_info: Option<RemainingAccountsInfo>,
+    ) -> Result<()> {
+        handle_create_vesting_escrow_with_session(ctx, &params, remaining_accounts_info)
+    }
+
+    /// Claim from vesting escrow with session-based signing
+    /// Supports delegated signing for claim operations on Fogo blockchain.
+    pub fn claim_with_session<'c: 'info, 'info>(
+        ctx: Context<'_, '_, 'c, 'info, ClaimWithSessionCtx<'info>>,
+        max_amount: u64,
+        remaining_accounts_info: Option<RemainingAccountsInfo>,
+    ) -> Result<()> {
+        handle_claim_with_session(ctx, max_amount, remaining_accounts_info)
     }
 }

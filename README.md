@@ -1,28 +1,62 @@
-# JUPITER LOCKER
+# Fogo Locker
 
-Open source program to allow user to lock token based on a vesting plan.
+[![FOGO](https://img.shields.io/badge/FOGO-grey?logo=lightning&style=for-the-badge)](https://fogo.io)
+[![CI](https://img.shields.io/github/actions/workflow/status/Tempest-Finance/fogo-locker/ci-pr-main-program.yml?logo=githubactions&logoColor=white&style=for-the-badge&label=CI)](https://github.com/Tempest-Finance/fogo-locker/actions/workflows/ci-pr-main-program.yml)
 
-## For developer
+A token vesting and locking program for the FOGO blockchain, forked from [Jupiter Locker](https://github.com/jup-ag/jup-lock). 
+Extended with Fogo Sessions support for delegated signing.
 
-To run all the test, please run the following commands:
+## Program ID
+
+| Network  | Address                                        |
+| -------- | ---------------------------------------------- |
+| Mainnet  | `LockvXm2nWht6EvHf44AmCuS3eMKRiWTuks2x27XRRo` |
+| Testnet  | `LockvXm2nWht6EvHf44AmCuS3eMKRiWTuks2x27XRRo` |
+
+## Quick Start
 
 ```bash
-anchor test -- --features localnet
+# Build the program
+make build
+
+# Run tests
+make test
+
+# See all commands
+make help
 ```
 
-Build programs:
+## Components
+
+| Directory      | Description                                       |
+| -------------- | ------------------------------------------------- |
+| `programs/`    | On-chain Anchor program (Rust)                    |
+| `cli/`         | Command-line interface for escrow operations       |
+| `sdk/`         | TypeScript SDK and IDL artifacts                   |
+| `merkle-tree/` | Merkle tree library for batch escrow creation      |
+| `tests/`       | Integration tests (TypeScript/Mocha)               |
+
+## Development
 
 ```bash
-anchor build
+# Format code
+make fmt
+
+# Run linter
+make lint
+
+# Unit tests only
+make test/unit
+
+# Deploy to testnet
+make deploy CLUSTER=testnet
 ```
 
-## Audit
+## Audits
 
-Jupiter Locker has been audited by Sec3 (prev.Soteria) and OtterSec. View the audit report [here](./audits).
+- **OtterSec** (2024-08-15): [`audits/OtterSec_2024_08_15.pdf`](./audits/OtterSec_2024_08_15.pdf)
+- **Sec3** (2024-08-05): [`audits/Sec3_2024_08_05.pdf`](./audits/Sec3_2024_08_05.pdf)
 
 ## License
 
-Anchor is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
-
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in Jupiter Locker by you, as defined in the Apache-2.0 license, shall be licensed as above, without any additional terms or conditions.
-
+Apache 2.0

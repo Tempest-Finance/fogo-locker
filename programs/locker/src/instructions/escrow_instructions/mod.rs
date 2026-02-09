@@ -19,3 +19,8 @@ pub mod close_vesting_escrow;
 pub mod create_vesting_escrow_metadata;
 pub mod update_vesting_escrow_recipient;
 pub use close_vesting_escrow::*;
+
+pub mod claim_with_session;
+pub mod create_vesting_escrow_with_session;
+pub use claim_with_session::*;
+pub use create_vesting_escrow_with_session::*;

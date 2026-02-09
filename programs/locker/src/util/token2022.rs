@@ -386,7 +386,7 @@ pub fn is_transfer_memo_required(token_account: &InterfaceAccount<TokenAccount>)
     }
 }
 
-fn get_transfer_hook_program_id<'info>(
+pub fn get_transfer_hook_program_id<'info>(
     token_mint: &InterfaceAccount<'info, Mint>,
 ) -> Result<Option<Pubkey>> {
     let token_mint_info = token_mint.to_account_info();
