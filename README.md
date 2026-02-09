@@ -54,6 +54,8 @@ make deploy CLUSTER=testnet
 
 ## Audits
 
+- **Codespect** (2026-02-09): [`audits/058_CODESPECT_IGNITION_FOGO_LOCKER.pdf`](./audits/058_CODESPECT_IGNITION_FOGO_LOCKER.pdf)
+- **Adevar** (2026-02-09): [`audits/Adevar_fogo_lock_after_fix_review_report.pdf`](./audits/Adevar_fogo_lock_after_fix_review_report.pdf)
 - **OtterSec** (2024-08-15): [`audits/OtterSec_2024_08_15.pdf`](./audits/OtterSec_2024_08_15.pdf)
 - **Sec3** (2024-08-05): [`audits/Sec3_2024_08_05.pdf`](./audits/Sec3_2024_08_05.pdf)
 
