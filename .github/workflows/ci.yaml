@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+env:
+  SOLANA_CLI_VERSION: 2.1.0
+
+jobs:
+  verify-locker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Solana
+        uses: ./.github/actions/setup-solana
+      
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Install Solana Verify
+        run: |
+          cargo install solana-verify --version 0.3.5 --locked
+      
+      - name: Build locker
+        run: |
+          solana-verify build --library-name locker
+      
+      - name: Get executable hash
+        id: get-hash
+        run: |
+          HASH=$(solana-verify get-executable-hash target/deploy/locker.so)
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+          echo "Executable hash: $HASH"
+      
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Locker Build ${{ github.run_number }}
+          body: |
+            **Executable Hash:**
+            ```
+            ${{ steps.get-hash.outputs.hash }}
+            ```
+            
+            Built from commit: ${{ github.sha }}
+          files: target/deploy/locker.so
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
