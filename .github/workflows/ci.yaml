@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  verify-locker:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Solana
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+      
+      - name: Install Solana Verify
+        run: |
+          cargo install solana-verify
+      
+      - name: Build locker
+        run: |
+          solana-verify build --library-name fogo_locker
+      
+      - name: Get executable hash
+        id: get-hash
+        run: |
+          HASH=$(solana-verify get-executable-hash target/deploy/locker.so)
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+          echo "Executable hash: $HASH"
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: locker-build
+          path: target/deploy/locker.so
+          retention-days: 7
+      
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Locker Build ${{ github.run_number }}
+          body: |
+            **Executable Hash:**
+            ```
+            ${{ steps.get-hash.outputs.hash }}
+            ```
+            
+            Built from commit: ${{ github.sha }}
+          files: target/deploy/locker.so
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
