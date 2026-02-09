@@ -67,19 +67,19 @@ audit: ## Run security audit
 # Deploy
 # ══════════════════════════════════════════════════════════════════════════════
 
-deploy: _check-cluster ## Deploy program (CLUSTER=localnet|testnet|mainnet)
+deploy: _check-cluster _check-program-keypair ## Deploy program (CLUSTER=localnet|testnet|mainnet)
 ifeq ($(CLUSTER),mainnet)
 	@printf "\033[31mDeploy to MAINNET? [y/N] \033[0m" && read ans && [ $${ans:-N} = y ]
 endif
 	$(MAKE) build/$(CLUSTER)
-	anchor deploy -p locker --provider.cluster $(RPC_$(CLUSTER))
+	anchor deploy -p locker --provider.cluster $(RPC_$(CLUSTER)) --program-keypair $(KEYPAIR_DIR)/$(PROGRAM_ID).json
 
-upgrade: _check-cluster ## Upgrade program (CLUSTER=localnet|testnet|mainnet)
+upgrade: _check-cluster _check-program-keypair ## Upgrade program (CLUSTER=localnet|testnet|mainnet)
 ifeq ($(CLUSTER),mainnet)
 	@printf "\033[31mUpgrade on MAINNET? [y/N] \033[0m" && read ans && [ $${ans:-N} = y ]
 endif
 	$(MAKE) build/$(CLUSTER)
-	anchor upgrade -p locker --provider.cluster $(RPC_$(CLUSTER)) $(PROGRAM_SO)
+	anchor upgrade -p locker --provider.cluster $(RPC_$(CLUSTER)) --program-keypair $(KEYPAIR_DIR)/$(PROGRAM_ID).json $(PROGRAM_SO)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Utilities
@@ -98,8 +98,8 @@ size: build ## Show program size
 show: _check-cluster ## Show program info on cluster
 	@solana program show $(PROGRAM_ID) --url $(RPC_$(CLUSTER)) 2>/dev/null || echo "Program not deployed on $(CLUSTER)"
 
-_check-keypair:
-	@test -f $(KEYPAIR_DIR)/$(PROGRAM_ID).json || (echo "Error: $(KEYPAIR_DIR)/$(PROGRAM_ID).json not found" && exit 1)
-
 _check-cluster:
 	@test -n "$(RPC_$(CLUSTER))" || (echo "Error: Invalid CLUSTER '$(CLUSTER)'" && exit 1)
+
+_check-program-keypair:
+	@test -f $(KEYPAIR_DIR)/$(PROGRAM_ID).json || (echo "Error: Program keypair not found at $(KEYPAIR_DIR)/$(PROGRAM_ID).json" && exit 1)
