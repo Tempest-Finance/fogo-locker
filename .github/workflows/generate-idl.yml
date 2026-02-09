@@ -25,7 +25,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Install Solana CLI
         run: |
-          sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.21/install)"
+          sh -c "$(curl -sSfL https://release.anza.xyz/v2.3.13/install)"
           echo "/home/runner/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
       - name: Install Anchor CLI via avm
         run: |

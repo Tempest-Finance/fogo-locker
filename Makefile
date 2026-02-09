@@ -1,6 +1,4 @@
-# ══════════════════════════════════════════════════════════════════════════════
 # Fogo Locker
-# ══════════════════════════════════════════════════════════════════════════════
 
 PROGRAM_ID_localnet := 76Hqr9nixY17jLcLekWAnmnAQLdSYS9DuU3XErVfETi3
 PROGRAM_ID_testnet  := LockvXm2nWht6EvHf44AmCuS3eMKRiWTuks2x27XRRo
@@ -8,8 +6,10 @@ PROGRAM_ID_staging  := 76Hqr9nixY17jLcLekWAnmnAQLdSYS9DuU3XErVfETi3
 PROGRAM_ID_mainnet  := LockvXm2nWht6EvHf44AmCuS3eMKRiWTuks2x27XRRo
 
 PROGRAM_SO := target/deploy/locker.so
+SOLANA_VERSION := 2.3.13
+DOCKER_IMAGE := solanafoundation/solana-verifiable-build:$(SOLANA_VERSION)
 
-CLUSTER ?= localnet
+CLUSTER ?= testnet
 RPC_localnet := http://localhost:8899
 RPC_testnet  := https://testnet.fogo.io
 RPC_mainnet  := https://mainnet.fogo.io
@@ -19,9 +19,7 @@ PROGRAM_ID  := $(PROGRAM_ID_$(CLUSTER))
 
 .DEFAULT_GOAL := help
 
-# ══════════════════════════════════════════════════════════════════════════════
 # Build
-# ══════════════════════════════════════════════════════════════════════════════
 
 build: ## Build on-chain program (CLUSTER=localnet|testnet|mainnet)
 	$(MAKE) build/$(CLUSTER)
@@ -33,13 +31,14 @@ build/testnet: ## Build for testnet
 	anchor build -p locker
 	@cp target/idl/locker.json ./sdk/artifacts/
 
-build/mainnet: ## Build for mainnet (no feature flag)
+build/mainnet: ## Build for mainnet
 	anchor build -p locker
 	@cp target/idl/locker.json ./sdk/artifacts/
 
-# ══════════════════════════════════════════════════════════════════════════════
+build/verifiable: ## Build verifiable binary in Docker
+	solana-verify build --library-name locker --base-image $(DOCKER_IMAGE)
+
 # Test
-# ══════════════════════════════════════════════════════════════════════════════
 
 test: build/localnet ## Run all tests
 	anchor test --skip-build
@@ -47,9 +46,7 @@ test: build/localnet ## Run all tests
 test/unit: ## Run unit tests only
 	cargo test --lib -p locker
 
-# ══════════════════════════════════════════════════════════════════════════════
 # Code Quality
-# ══════════════════════════════════════════════════════════════════════════════
 
 fmt: ## Format Rust code
 	cargo fmt --all
@@ -63,27 +60,36 @@ lint: ## Run clippy
 audit: ## Run security audit
 	cargo audit
 
-# ══════════════════════════════════════════════════════════════════════════════
 # Deploy
-# ══════════════════════════════════════════════════════════════════════════════
 
 deploy: _check-cluster _check-program-keypair ## Deploy program (CLUSTER=localnet|testnet|mainnet)
 ifeq ($(CLUSTER),mainnet)
 	@printf "\033[31mDeploy to MAINNET? [y/N] \033[0m" && read ans && [ $${ans:-N} = y ]
 endif
-	$(MAKE) build/$(CLUSTER)
+	$(MAKE) build/verifiable
 	anchor deploy -p locker --provider.cluster $(RPC_$(CLUSTER)) --program-keypair $(KEYPAIR_DIR)/$(PROGRAM_ID).json
 
 upgrade: _check-cluster _check-program-keypair ## Upgrade program (CLUSTER=localnet|testnet|mainnet)
 ifeq ($(CLUSTER),mainnet)
 	@printf "\033[31mUpgrade on MAINNET? [y/N] \033[0m" && read ans && [ $${ans:-N} = y ]
 endif
-	$(MAKE) build/$(CLUSTER)
+	$(MAKE) build/verifiable
 	anchor upgrade -p locker --provider.cluster $(RPC_$(CLUSTER)) --program-keypair $(KEYPAIR_DIR)/$(PROGRAM_ID).json $(PROGRAM_SO)
 
-# ══════════════════════════════════════════════════════════════════════════════
+# Verify
+
+hash: ## Print executable hash of built program
+	@solana-verify get-executable-hash $(PROGRAM_SO)
+
+verify: _check-cluster ## Verify on-chain program matches repo
+	solana-verify verify-from-repo \
+		--url $(RPC_$(CLUSTER)) \
+		--program-id $(PROGRAM_ID) \
+		--library-name locker \
+		--base-image $(DOCKER_IMAGE) \
+		https://github.com/Tempest-Finance/fogo-locker
+
 # Utilities
-# ══════════════════════════════════════════════════════════════════════════════
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z\/_-]+:.*?## / {printf "  \033[32m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
